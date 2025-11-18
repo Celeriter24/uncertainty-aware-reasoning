@@ -2,20 +2,6 @@
 
 Get started with the uncertainty-aware LLM interface in 3 minutes!
 
-## 🚀 Quick Demo (No API Key Required)
-
-See the system in action immediately:
-
-```bash
-python demo.py
-```
-
-This runs a demonstration with simulated responses showing:
-- Low uncertainty (factual questions)
-- High uncertainty (subjective questions)  
-- Medium uncertainty (complex questions)
-- Function calling schema
-
 ## 📦 Installation
 
 ```bash
@@ -36,6 +22,9 @@ python main.py
 
 Example interaction:
 ```
+Enter uncertainty threshold (or press Enter for default 1.0): 1.0
+✓ Using uncertainty threshold: 1.0
+
 👤 You: What is the capital of France?
 
 🔧 LLM is calling function: measure_uncertainty
@@ -44,7 +33,7 @@ Example interaction:
 ...
 
 🤖 Assistant: The capital of France is Paris.
-[Low uncertainty - consistent across all samples]
+[Confident - ratio <= threshold]
 ```
 
 ## 💻 Programmatic Usage
@@ -94,9 +83,6 @@ python example.py
 
 # Run tests
 python -m unittest discover tests -v
-
-# Run demo (no API key needed)
-python demo.py
 ```
 
 ## 🎯 Example Output
@@ -149,17 +135,13 @@ You may want to verify the response or ask for clarification.
 **"No module named 'openai'"**
 - Run: `pip install -r requirements.txt`
 
-**Want to test without API key?**
-- Run: `python demo.py`
-
 ## 📞 Support
 
 For more help:
 1. Check [USAGE.md](USAGE.md) for detailed documentation
 2. Review examples in [example.py](example.py)
-3. Run the demo: `python demo.py`
-4. Check the tests: `tests/test_measure_uncertainty.py`
+3. Check the tests: `tests/test_measure_uncertainty.py`
 
 ---
 
-**Ready to start?** Run `python demo.py` to see it in action!
+**Ready to start?** Run `python main.py` to begin!
