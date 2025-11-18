@@ -29,6 +29,32 @@ def main():
     print("=" * 80)
     print("\nThis interface uses function calling to measure uncertainty in LLM responses.")
     print("The LLM will automatically use the 'measure_uncertainty' tool for every query.")
+    
+    # Get uncertainty threshold from user
+    print("\n" + "=" * 80)
+    print("CONFIGURATION")
+    print("=" * 80)
+    print("\nUncertainty Threshold: This determines when the system considers a response uncertain.")
+    print("- Formula: uncertainty_ratio = uncertainty_phrase_logprob / answer_logprob")
+    print("- If uncertainty_ratio > threshold, the response is considered UNCERTAIN")
+    print("- If uncertainty_ratio <= threshold, the response is considered CERTAIN")
+    print("\nThreshold Guidelines:")
+    print("  - Lower (0.5-0.9): More conservative, marks more responses as uncertain")
+    print("  - Default (1.0): Balanced approach")
+    print("  - Higher (1.5-2.0): Only marks very similar confidence levels as uncertain")
+    
+    threshold_input = input("\nEnter uncertainty threshold (or press Enter for default 1.0): ").strip()
+    if threshold_input:
+        try:
+            uncertainty_threshold = float(threshold_input)
+        except ValueError:
+            print("⚠️  Invalid input, using default threshold of 1.0")
+            uncertainty_threshold = 1.0
+    else:
+        uncertainty_threshold = 1.0
+    
+    print(f"\n✓ Using uncertainty threshold: {uncertainty_threshold}")
+    
     print("\nCommands:")
     print("  - Type your question to get an uncertainty-aware response")
     print("  - Type 'reset' to clear conversation history")
@@ -40,6 +66,7 @@ def main():
     print(f"\n🚀 Initializing LLM interface with model: {model}\n")
     
     interface = LLMFunctionInterface(model=model)
+    interface.uncertainty_threshold = uncertainty_threshold
     
     # Interactive loop
     while True:

@@ -30,14 +30,6 @@ This project implements a function-calling LLM interface where the LLM **always*
 
 ## Quick Start
 
-### Try it Now (No API Key Required!)
-
-```bash
-python demo.py
-```
-
-See the system in action with simulated responses!
-
 ### Installation
 
 ```bash
@@ -87,18 +79,33 @@ If Uncertain:
   LLM: "I'm unsure about [specific aspect]. Could you provide more information?"
 ```
 
-### Certainty Ratio Explained
+### Uncertainty Ratio Explained
 
-The system calculates a **certainty ratio** to objectively measure confidence:
+The system calculates an **uncertainty ratio** to objectively measure confidence:
 
-1. **Answer Logprobs**: Mean log probability across all tokens in the 5 answers
+1. **Answer Logprobs**: Mean log probability across all tokens in the 5 answers (more negative = less confident)
 2. **Uncertainty Phrase Logprobs**: Mean log probability for phrases like "I'm not sure"
-3. **Certainty Ratio**: `answer_mean_logprob / uncertainty_phrase_mean_logprob`
-4. **Decision**:
-   - Ratio **< threshold**: Answer confidence is similar to uncertainty → Request clarification
-   - Ratio **≥ threshold**: Answer confidence is higher than uncertainty → Provide answer
+3. **Uncertainty Ratio**: `uncertainty_phrase_mean_logprob / answer_mean_logprob`
+4. **Threshold**: User-provided value that determines certainty cutoff
+5. **Decision**:
+   - Ratio **> threshold**: Model considers the response uncertain → Request clarification
+   - Ratio **≤ threshold**: Model is confident in the response → Provide answer
 
-**Example**: If answers have logprob -0.05 (high confidence) and uncertainty phrases have -2.0 (low confidence), ratio = 0.025. Since 0.025 < 1.0 (default threshold), the system is confident!
+**How the Ratio Works:**
+- When answers have very low confidence (e.g., -3.0) compared to uncertainty phrases (e.g., -2.0):
+  - Ratio = -2.0 / -3.0 = 0.67
+  - With threshold = 1.0, ratio ≤ threshold → CERTAIN (answer less uncertain than uncertainty phrases)
+  
+- When answers and uncertainty phrases have similar confidence (e.g., -1.8 vs -2.0):
+  - Ratio = -2.0 / -1.8 = 1.11  
+  - With threshold = 1.0, ratio > threshold → UNCERTAIN (similar confidence levels)
+
+**Choosing a Threshold:**
+- **Lower threshold (0.5-0.9)**: More conservative, marks more responses as uncertain
+- **Default threshold (1.0)**: Balanced approach
+- **Higher threshold (1.5-2.0)**: More aggressive, only marks responses with very similar confidence as uncertain
+
+The threshold should be adjusted based on your use case and tolerance for uncertainty.
 
 ## Example Output
 
