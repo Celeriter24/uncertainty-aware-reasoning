@@ -159,6 +159,35 @@ class TestUncertaintyMeasurer(unittest.TestCase):
         self.assertIn("TEST PROMPT", formatted_upper)
         self.assertIn("HIGH", formatted_upper)
         self.assertIn("RESPONSE 1", formatted_upper)
+    
+    def test_calculate_mean_logprob(self):
+        """Test calculation of mean log probability."""
+        measurer = UncertaintyMeasurer(api_key=self.api_key, model=self.model)
+        
+        # Create mock logprobs data
+        mock_logprobs = []
+        for _ in range(3):
+            mock_content = []
+            for _ in range(5):  # 5 tokens
+                token_logprob = Mock()
+                token_logprob.logprob = -0.5
+                mock_content.append(token_logprob)
+            
+            mock_lp = Mock()
+            mock_lp.content = mock_content
+            mock_logprobs.append(mock_lp)
+        
+        mean_logprob = measurer._calculate_mean_logprob(mock_logprobs)
+        
+        # Mean should be -0.5
+        self.assertAlmostEqual(mean_logprob, -0.5, places=5)
+    
+    def test_calculate_mean_logprob_empty(self):
+        """Test mean logprob calculation with empty data."""
+        measurer = UncertaintyMeasurer(api_key=self.api_key, model=self.model)
+        
+        mean_logprob = measurer._calculate_mean_logprob([])
+        self.assertEqual(mean_logprob, 0.0)
 
 
 class TestFunctionSchema(unittest.TestCase):

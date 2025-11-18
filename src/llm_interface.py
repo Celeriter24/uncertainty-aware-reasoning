@@ -39,6 +39,11 @@ class LLMFunctionInterface:
                         "type": "number",
                         "description": "Temperature for sampling - higher values produce more diverse responses (default: 0.7)",
                         "default": 0.7
+                    },
+                    "uncertainty_threshold": {
+                        "type": "number",
+                        "description": "Threshold for certainty ratio. If ratio < threshold, LLM is uncertain (default: 1.0)",
+                        "default": 1.0
                     }
                 },
                 "required": ["prompt"]
@@ -147,17 +152,25 @@ class LLMFunctionInterface:
             uncertainty_results = self.uncertainty_measurer.measure_uncertainty(
                 prompt=function_args.get("prompt", user_message),
                 num_samples=function_args.get("num_samples", 5),
-                temperature=function_args.get("temperature", 0.7)
+                temperature=function_args.get("temperature", 0.7),
+                uncertainty_threshold=function_args.get("uncertainty_threshold", 1.0)
             )
             
             # Format the results
             formatted_results = self.uncertainty_measurer.format_results(uncertainty_results)
             
+            # Prepare tool response with both analysis and the actual response
+            tool_content = {
+                "analysis": uncertainty_results["uncertainty_analysis"],
+                "is_uncertain": uncertainty_results.get("is_uncertain", False),
+                "tool_response": uncertainty_results.get("tool_response", "")
+            }
+            
             # Add function result to conversation history
             self.conversation_history.append({
                 "role": "tool",
                 "tool_call_id": tool_call.id,
-                "content": json.dumps(uncertainty_results["uncertainty_analysis"])
+                "content": json.dumps(tool_content)
             })
             
             # Get the final response from the LLM
