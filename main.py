@@ -35,9 +35,13 @@ def main():
     print("CONFIGURATION")
     print("=" * 80)
     print("\nUncertainty Threshold: This determines when the system considers a response uncertain.")
+    print("- Formula: uncertainty_ratio = uncertainty_phrase_logprob / answer_logprob")
     print("- If uncertainty_ratio > threshold, the response is considered UNCERTAIN")
     print("- If uncertainty_ratio <= threshold, the response is considered CERTAIN")
-    print("- Typical values: 0.8 to 1.2 (default: 1.0)")
+    print("\nThreshold Guidelines:")
+    print("  - Lower (0.5-0.9): More conservative, marks more responses as uncertain")
+    print("  - Default (1.0): Balanced approach")
+    print("  - Higher (1.5-2.0): Only marks very similar confidence levels as uncertain")
     
     threshold_input = input("\nEnter uncertainty threshold (or press Enter for default 1.0): ").strip()
     if threshold_input:

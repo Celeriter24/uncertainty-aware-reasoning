@@ -83,15 +83,29 @@ If Uncertain:
 
 The system calculates an **uncertainty ratio** to objectively measure confidence:
 
-1. **Answer Logprobs**: Mean log probability across all tokens in the 5 answers
+1. **Answer Logprobs**: Mean log probability across all tokens in the 5 answers (more negative = less confident)
 2. **Uncertainty Phrase Logprobs**: Mean log probability for phrases like "I'm not sure"
 3. **Uncertainty Ratio**: `uncertainty_phrase_mean_logprob / answer_mean_logprob`
-4. **Threshold**: User-provided value (default: 1.0) that determines certainty cutoff
+4. **Threshold**: User-provided value that determines certainty cutoff
 5. **Decision**:
-   - Ratio **> threshold**: Uncertainty phrases have similar confidence to answers → Request clarification
-   - Ratio **≤ threshold**: Answer confidence is higher than uncertainty phrases → Provide answer
+   - Ratio **> threshold**: Model considers the response uncertain → Request clarification
+   - Ratio **≤ threshold**: Model is confident in the response → Provide answer
 
-**Example**: If answers have logprob -0.05 (high confidence) and uncertainty phrases have -2.0 (low confidence), ratio = -2.0 / -0.05 = 40. Since 40 > 1.0 (default threshold), the system requests clarification. You can adjust the threshold (e.g., to 50) to change this behavior.
+**How the Ratio Works:**
+- When answers have very low confidence (e.g., -3.0) compared to uncertainty phrases (e.g., -2.0):
+  - Ratio = -2.0 / -3.0 = 0.67
+  - With threshold = 1.0, ratio ≤ threshold → CERTAIN (answer less uncertain than uncertainty phrases)
+  
+- When answers and uncertainty phrases have similar confidence (e.g., -1.8 vs -2.0):
+  - Ratio = -2.0 / -1.8 = 1.11  
+  - With threshold = 1.0, ratio > threshold → UNCERTAIN (similar confidence levels)
+
+**Choosing a Threshold:**
+- **Lower threshold (0.5-0.9)**: More conservative, marks more responses as uncertain
+- **Default threshold (1.0)**: Balanced approach
+- **Higher threshold (1.5-2.0)**: More aggressive, only marks responses with very similar confidence as uncertain
+
+The threshold should be adjusted based on your use case and tolerance for uncertainty.
 
 ## Example Output
 
