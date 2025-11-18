@@ -100,18 +100,21 @@ class UncertaintyMeasurer:
         uncertainty_phrase_mean = sum(phrase_logprobs.values()) / len(phrase_logprobs) if phrase_logprobs else 0.0
         
         # Calculate ratio (avoiding division by zero)
-        if uncertainty_phrase_mean != 0:
-            certainty_ratio = answer_mean_logprob / uncertainty_phrase_mean
+        # Ratio = uncertainty_phrase_logprob / answer_logprob
+        # If ratio > threshold, then uncertain; otherwise certain
+        if answer_mean_logprob != 0:
+            uncertainty_ratio = uncertainty_phrase_mean / answer_mean_logprob
         else:
-            certainty_ratio = float('inf') if answer_mean_logprob > 0 else 1.0
+            uncertainty_ratio = float('inf') if uncertainty_phrase_mean > 0 else 0.0
         
         # Determine if LLM is uncertain based on threshold
-        is_uncertain = certainty_ratio < uncertainty_threshold
+        # If ratio of uncertainty to answer logprobs is high, it means uncertain
+        is_uncertain = uncertainty_ratio > uncertainty_threshold
         
         print(f"📈 Answer mean logprob: {answer_mean_logprob:.4f}")
         print(f"📉 Uncertainty phrases mean logprob: {uncertainty_phrase_mean:.4f}")
-        print(f"⚖️  Certainty ratio: {certainty_ratio:.4f} (threshold: {uncertainty_threshold})")
-        print(f"{'❓ LLM is UNCERTAIN' if is_uncertain else '✅ LLM is CONFIDENT'}")
+        print(f"⚖️  Uncertainty ratio: {uncertainty_ratio:.4f} (threshold: {uncertainty_threshold})")
+        print(f"{'❓ LLM is UNCERTAIN (ratio > threshold)' if is_uncertain else '✅ LLM is CONFIDENT (ratio <= threshold)'}")
         
         # Generate appropriate response based on certainty
         if is_uncertain:
@@ -127,7 +130,7 @@ class UncertaintyMeasurer:
         analysis["answer_mean_logprob"] = round(answer_mean_logprob, 4)
         analysis["uncertainty_phrase_logprobs"] = {k: round(v, 4) for k, v in phrase_logprobs.items()}
         analysis["uncertainty_phrase_mean_logprob"] = round(uncertainty_phrase_mean, 4)
-        analysis["certainty_ratio"] = round(certainty_ratio, 4)
+        analysis["uncertainty_ratio"] = round(uncertainty_ratio, 4)
         analysis["uncertainty_threshold"] = uncertainty_threshold
         analysis["is_uncertain"] = is_uncertain
         
@@ -355,12 +358,12 @@ class UncertaintyMeasurer:
             output.append(f"Average Token Confidence: {analysis['average_token_confidence']}")
             
             # Add new ratio analysis
-            if 'certainty_ratio' in analysis:
+            if 'uncertainty_ratio' in analysis:
                 output.append(f"\nAnswer Mean Logprob: {analysis['answer_mean_logprob']}")
                 output.append(f"Uncertainty Phrases Mean Logprob: {analysis['uncertainty_phrase_mean_logprob']}")
-                output.append(f"Certainty Ratio: {analysis['certainty_ratio']}")
+                output.append(f"Uncertainty Ratio: {analysis['uncertainty_ratio']}")
                 output.append(f"Threshold: {analysis['uncertainty_threshold']}")
-                output.append(f"Status: {'UNCERTAIN - Needs clarification' if analysis['is_uncertain'] else 'CONFIDENT - Has answer'}")
+                output.append(f"Status: {'UNCERTAIN (ratio > threshold)' if analysis['is_uncertain'] else 'CONFIDENT (ratio <= threshold)'}")
             
             output.append(f"\nRecommendation: {analysis['recommendation']}")
         

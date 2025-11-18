@@ -188,6 +188,70 @@ class TestUncertaintyMeasurer(unittest.TestCase):
         
         mean_logprob = measurer._calculate_mean_logprob([])
         self.assertEqual(mean_logprob, 0.0)
+    
+    @patch('src.measure_uncertainty.OpenAI')
+    def test_uncertainty_ratio_logic(self, mock_openai):
+        """Test the uncertainty ratio calculation and decision logic."""
+        # Create mock responses
+        def create_mock_response(logprob_value):
+            mock_response = Mock()
+            mock_choice = Mock()
+            mock_message = Mock()
+            mock_message.content = "Test response"
+            
+            mock_logprobs = Mock()
+            mock_content = []
+            for _ in range(5):  # 5 tokens
+                token_logprob = Mock()
+                token_logprob.logprob = logprob_value
+                mock_content.append(token_logprob)
+            
+            mock_logprobs.content = mock_content
+            mock_choice.logprobs = mock_logprobs
+            mock_choice.message = mock_message
+            mock_response.choices = [mock_choice]
+            return mock_response
+        
+        mock_client = Mock()
+        mock_openai.return_value = mock_client
+        
+        measurer = UncertaintyMeasurer(api_key=self.api_key, model=self.model)
+        
+        # Test Case 1: High confidence answer (-0.05) vs low confidence uncertainty phrases (-2.0)
+        # Ratio = -2.0 / -0.05 = 40, which is > 1.0, so should be UNCERTAIN
+        mock_client.chat.completions.create.side_effect = [
+            create_mock_response(-0.05) for _ in range(5)  # Answer queries
+        ] + [
+            create_mock_response(-2.0) for _ in range(3)  # Uncertainty phrase queries
+        ] + [
+            create_mock_response(-0.1)  # Uncertainty message generation
+        ]
+        
+        results = measurer.measure_uncertainty("Test question", num_samples=5, uncertainty_threshold=1.0)
+        analysis = results["uncertainty_analysis"]
+        
+        # With corrected logic: ratio = uncertainty / answer = -2.0 / -0.05 = 40
+        # 40 > 1.0, so should be uncertain
+        self.assertAlmostEqual(analysis["uncertainty_ratio"], 40.0, places=1)
+        self.assertTrue(analysis["is_uncertain"], "High ratio should indicate uncertainty")
+        
+        # Test Case 2: Similar confidence for both (-1.8 vs -2.0)
+        # Ratio = -2.0 / -1.8 = 1.11, which is > 1.0, so should be UNCERTAIN
+        mock_client.chat.completions.create.side_effect = [
+            create_mock_response(-1.8) for _ in range(5)  # Answer queries
+        ] + [
+            create_mock_response(-2.0) for _ in range(3)  # Uncertainty phrase queries
+        ] + [
+            create_mock_response(-0.1)  # Uncertainty message generation
+        ]
+        
+        results = measurer.measure_uncertainty("Test question", num_samples=5, uncertainty_threshold=1.0)
+        analysis = results["uncertainty_analysis"]
+        
+        # With corrected logic: ratio = uncertainty / answer = -2.0 / -1.8 ≈ 1.11
+        # 1.11 > 1.0, so should be uncertain
+        self.assertGreater(analysis["uncertainty_ratio"], 1.0)
+        self.assertTrue(analysis["is_uncertain"], "Ratio > 1.0 should indicate uncertainty")
 
 
 class TestFunctionSchema(unittest.TestCase):

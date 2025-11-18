@@ -30,14 +30,6 @@ This project implements a function-calling LLM interface where the LLM **always*
 
 ## Quick Start
 
-### Try it Now (No API Key Required!)
-
-```bash
-python demo.py
-```
-
-See the system in action with simulated responses!
-
 ### Installation
 
 ```bash
@@ -87,18 +79,19 @@ If Uncertain:
   LLM: "I'm unsure about [specific aspect]. Could you provide more information?"
 ```
 
-### Certainty Ratio Explained
+### Uncertainty Ratio Explained
 
-The system calculates a **certainty ratio** to objectively measure confidence:
+The system calculates an **uncertainty ratio** to objectively measure confidence:
 
 1. **Answer Logprobs**: Mean log probability across all tokens in the 5 answers
 2. **Uncertainty Phrase Logprobs**: Mean log probability for phrases like "I'm not sure"
-3. **Certainty Ratio**: `answer_mean_logprob / uncertainty_phrase_mean_logprob`
-4. **Decision**:
-   - Ratio **< threshold**: Answer confidence is similar to uncertainty → Request clarification
-   - Ratio **≥ threshold**: Answer confidence is higher than uncertainty → Provide answer
+3. **Uncertainty Ratio**: `uncertainty_phrase_mean_logprob / answer_mean_logprob`
+4. **Threshold**: User-provided value (default: 1.0) that determines certainty cutoff
+5. **Decision**:
+   - Ratio **> threshold**: Uncertainty phrases have similar confidence to answers → Request clarification
+   - Ratio **≤ threshold**: Answer confidence is higher than uncertainty phrases → Provide answer
 
-**Example**: If answers have logprob -0.05 (high confidence) and uncertainty phrases have -2.0 (low confidence), ratio = 0.025. Since 0.025 < 1.0 (default threshold), the system is confident!
+**Example**: If answers have logprob -0.05 (high confidence) and uncertainty phrases have -2.0 (low confidence), ratio = -2.0 / -0.05 = 40. Since 40 > 1.0 (default threshold), the system requests clarification. You can adjust the threshold (e.g., to 50) to change this behavior.
 
 ## Example Output
 

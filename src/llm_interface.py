@@ -42,7 +42,7 @@ class LLMFunctionInterface:
                     },
                     "uncertainty_threshold": {
                         "type": "number",
-                        "description": "Threshold for certainty ratio. If ratio < threshold, LLM is uncertain (default: 1.0)",
+                        "description": "Threshold for uncertainty ratio (uncertainty_phrase_logprob / answer_logprob). If ratio > threshold, LLM is uncertain; otherwise certain. This value should be provided by the user based on their requirements. Typical values: 0.8-1.2 (default: 1.0)",
                         "default": 1.0
                     }
                 },
@@ -74,6 +74,7 @@ class LLMFunctionInterface:
             model=self.uncertainty_model
         )
         self.conversation_history = []
+        self.uncertainty_threshold = 1.0  # Default threshold, can be overridden by user
         
     def process_user_message(self, user_message: str) -> Dict[str, Any]:
         """
@@ -100,11 +101,13 @@ class LLMFunctionInterface:
         system_message = {
             "role": "system",
             "content": (
-                "You are an uncertainty-aware AI assistant. For every user query, "
-                "you MUST use the 'measure_uncertainty' function to analyze the query "
-                "and measure uncertainty in the response. After receiving the uncertainty "
-                "results, provide a comprehensive answer to the user that incorporates "
-                "the uncertainty analysis."
+                f"You are an uncertainty-aware AI assistant. For every user query, "
+                f"you MUST use the 'measure_uncertainty' function to analyze the query "
+                f"and measure uncertainty in the response. "
+                f"IMPORTANT: Always use uncertainty_threshold={self.uncertainty_threshold} in your function call. "
+                f"This threshold has been provided by the user. "
+                f"After receiving the uncertainty results, provide a comprehensive answer to the user that incorporates "
+                f"the uncertainty analysis."
             )
         }
         
@@ -149,11 +152,12 @@ class LLMFunctionInterface:
             print(f"📋 Arguments: {json.dumps(function_args, indent=2)}\n")
             
             # Call the measure_uncertainty function
+            # Use user-provided threshold, not LLM-decided threshold
             uncertainty_results = self.uncertainty_measurer.measure_uncertainty(
                 prompt=function_args.get("prompt", user_message),
                 num_samples=function_args.get("num_samples", 5),
                 temperature=function_args.get("temperature", 0.7),
-                uncertainty_threshold=function_args.get("uncertainty_threshold", 1.0)
+                uncertainty_threshold=self.uncertainty_threshold  # Always use user-provided threshold
             )
             
             # Format the results
