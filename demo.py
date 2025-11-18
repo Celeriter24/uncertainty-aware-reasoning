@@ -35,7 +35,7 @@ def create_mock_response(text, logprob=-0.1):
 def demo_low_uncertainty():
     """Demonstrate low uncertainty (confident response)."""
     print("=" * 80)
-    print("DEMO 1: LOW UNCERTAINTY - Factual Question")
+    print("DEMO 1: CONFIDENT RESPONSE - High Certainty Ratio")
     print("=" * 80)
     print("\nQuestion: What is the capital of France?")
     print("\nSimulating 5 LLM queries...")
@@ -49,15 +49,26 @@ def demo_low_uncertainty():
         "Paris is the capital of France."
     ]
     
+    # Mock uncertainty phrases
+    uncertainty_phrases_responses = [
+        "I'm not sure about that",
+        "I'm insecure about this",
+        "I need help with this"
+    ]
+    
     with patch('src.measure_uncertainty.OpenAI') as mock_openai:
         mock_client = Mock()
+        # First 5 calls are for answer queries (high confidence)
+        # Next 3 calls are for uncertainty phrases (low confidence)
         mock_client.chat.completions.create.side_effect = [
             create_mock_response(resp, logprob=-0.05) for resp in responses
+        ] + [
+            create_mock_response(phrase, logprob=-2.0) for phrase in uncertainty_phrases_responses
         ]
         mock_openai.return_value = mock_client
         
         measurer = UncertaintyMeasurer(api_key="demo-key")
-        results = measurer.measure_uncertainty("What is the capital of France?", num_samples=5)
+        results = measurer.measure_uncertainty("What is the capital of France?", num_samples=5, uncertainty_threshold=1.0)
         
         print("\n" + "-" * 80)
         print("RESULTS")
@@ -66,35 +77,59 @@ def demo_low_uncertainty():
         print(f"Uncertainty Level: {analysis['uncertainty_level'].upper()}")
         print(f"Response Diversity: {analysis['response_diversity']} ({analysis['unique_responses']}/{analysis['total_samples']} unique)")
         print(f"Average Token Confidence: {analysis['average_token_confidence']}")
+        
+        if 'certainty_ratio' in analysis:
+            print(f"\n🎯 NEW FEATURE - Certainty Ratio Analysis:")
+            print(f"  Answer Mean Logprob: {analysis['answer_mean_logprob']}")
+            print(f"  Uncertainty Phrases Mean Logprob: {analysis['uncertainty_phrase_mean_logprob']}")
+            print(f"  Certainty Ratio: {analysis['certainty_ratio']}")
+            print(f"  Threshold: {analysis['uncertainty_threshold']}")
+            print(f"  Status: {'UNCERTAIN' if analysis['is_uncertain'] else 'CONFIDENT'}")
+            print(f"\nTool Response: {results.get('tool_response', 'N/A')[:100]}...")
+        
         print(f"\nInterpretation: {analysis['recommendation']}")
 
 
 def demo_high_uncertainty():
     """Demonstrate high uncertainty (controversial/ambiguous question)."""
     print("\n\n" + "=" * 80)
-    print("DEMO 2: HIGH UNCERTAINTY - Subjective Question")
+    print("DEMO 2: UNCERTAIN RESPONSE - Low Certainty Ratio")
     print("=" * 80)
-    print("\nQuestion: What is the best programming language?")
+    print("\nQuestion: What is the meaning of existence?")
     print("\nSimulating 5 LLM queries...")
     
     # All responses are different = high uncertainty
     responses = [
-        "Python is the best programming language for beginners and data science.",
-        "JavaScript is the most versatile programming language for web development.",
-        "Rust is the best for systems programming with memory safety guarantees.",
-        "Go is the best for building scalable concurrent applications.",
-        "C++ offers the best performance for computationally intensive tasks."
+        "Existence may relate to consciousness and subjective experience.",
+        "From a philosophical perspective, existence could involve being and nothingness.",
+        "Perhaps existence is about creating meaning through our choices.",
+        "The meaning might be found in relationships and connections.",
+        "Existence could be an emergent property of the universe."
+    ]
+    
+    # Mock uncertainty phrases
+    uncertainty_phrases_responses = [
+        "I'm not sure about that",
+        "I'm insecure about this", 
+        "I need help with this"
     ]
     
     with patch('src.measure_uncertainty.OpenAI') as mock_openai:
         mock_client = Mock()
+        # First 5 calls are for answer queries (low confidence - similar to uncertainty phrases)
+        # Next 3 calls are for uncertainty phrases
+        # Last call is for generating the uncertainty message
         mock_client.chat.completions.create.side_effect = [
-            create_mock_response(resp, logprob=-0.8) for resp in responses
+            create_mock_response(resp, logprob=-1.8) for resp in responses
+        ] + [
+            create_mock_response(phrase, logprob=-2.0) for phrase in uncertainty_phrases_responses
+        ] + [
+            create_mock_response("the specific aspect of existence you're asking about - whether it's philosophical, scientific, or personal meaning. Could you clarify?", logprob=-0.3)
         ]
         mock_openai.return_value = mock_client
         
         measurer = UncertaintyMeasurer(api_key="demo-key")
-        results = measurer.measure_uncertainty("What is the best programming language?", num_samples=5)
+        results = measurer.measure_uncertainty("What is the meaning of existence?", num_samples=5, uncertainty_threshold=1.0)
         
         print("\n" + "-" * 80)
         print("RESULTS")
@@ -103,6 +138,16 @@ def demo_high_uncertainty():
         print(f"Uncertainty Level: {analysis['uncertainty_level'].upper()}")
         print(f"Response Diversity: {analysis['response_diversity']} ({analysis['unique_responses']}/{analysis['total_samples']} unique)")
         print(f"Average Token Confidence: {analysis['average_token_confidence']}")
+        
+        if 'certainty_ratio' in analysis:
+            print(f"\n🎯 NEW FEATURE - Certainty Ratio Analysis:")
+            print(f"  Answer Mean Logprob: {analysis['answer_mean_logprob']}")
+            print(f"  Uncertainty Phrases Mean Logprob: {analysis['uncertainty_phrase_mean_logprob']}")
+            print(f"  Certainty Ratio: {analysis['certainty_ratio']}")
+            print(f"  Threshold: {analysis['uncertainty_threshold']}")
+            print(f"  Status: {'UNCERTAIN' if analysis['is_uncertain'] else 'CONFIDENT'}")
+            print(f"\nTool Response: {results.get('tool_response', 'N/A')[:150]}...")
+        
         print(f"\nInterpretation: {analysis['recommendation']}")
 
 
@@ -163,6 +208,8 @@ def demo_function_calling():
         for param, details in schema['function']['parameters']['properties'].items():
             required = "✓" if param in schema['function']['parameters']['required'] else "○"
             print(f"  [{required}] {param}: {details['description'][:70]}...")
+            if param == 'uncertainty_threshold':
+                print(f"       🎯 NEW: Controls certainty ratio threshold!")
         
         print("\nThe LLM is forced to use this function via:")
         print("  tool_choice={'type': 'function', 'function': {'name': 'measure_uncertainty'}}")

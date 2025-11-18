@@ -175,24 +175,43 @@ Clear conversation history.
 
 ### UncertaintyMeasurer
 
-#### `measure_uncertainty(prompt: str, num_samples=5, temperature=0.7, max_tokens=500) -> Dict`
+#### `measure_uncertainty(prompt: str, num_samples=5, temperature=0.7, max_tokens=500, uncertainty_threshold=1.0) -> Dict`
 Measure uncertainty by querying the LLM multiple times.
+
+Parameters:
+- `prompt`: The question or prompt to analyze
+- `num_samples`: Number of times to query (default: 5)
+- `temperature`: Sampling temperature (default: 0.7)
+- `max_tokens`: Max tokens per response (default: 500)
+- `uncertainty_threshold`: Certainty ratio threshold (default: 1.0)
 
 Returns:
 - `responses`: List of response texts
 - `logprobs`: Token log probabilities
-- `uncertainty_analysis`: Detailed analysis including diversity, confidence, and recommendations
+- `uncertainty_analysis`: Detailed analysis including:
+  - Response diversity and confidence
+  - Answer mean logprob
+  - Uncertainty phrase logprobs
+  - Certainty ratio
+  - Threshold comparison
+  - Uncertainty status (is_uncertain)
+- `is_uncertain`: Boolean indicating if LLM is uncertain
+- `tool_response`: The response to return (answer or clarification request)
 
 #### `format_results(results: Dict) -> str`
 Format results for human-readable display.
 
 ## Tips
 
-1. **For factual questions**: Expect low uncertainty
-2. **For opinion-based questions**: Expect higher uncertainty
+1. **For factual questions**: Expect low uncertainty and confident responses
+2. **For opinion-based questions**: Expect higher uncertainty and possible clarification requests
 3. **For ambiguous questions**: Uncertainty measurement helps identify areas needing clarification
 4. **Higher temperature**: Increases response diversity, better for measuring uncertainty
 5. **More samples**: Provides more accurate uncertainty estimates but increases API costs
+6. **Adjusting threshold**: 
+   - Lower threshold (e.g., 0.5): More conservative, requests clarification more often
+   - Higher threshold (e.g., 2.0): More permissive, provides answers more readily
+   - Default (1.0): Balanced approach
 
 ## Troubleshooting
 
@@ -213,6 +232,8 @@ Format results for human-readable display.
 Each query results in:
 - 1 API call to the function-calling LLM
 - N API calls for uncertainty measurement (default: 5)
+- 3 API calls for uncertainty phrase logprobs
+- 1 API call for generating clarification message (if uncertain)
 - 1 final API call for response synthesis
 
-Total: 7 API calls per user query with default settings.
+Total: ~10-11 API calls per user query with default settings.
