@@ -24,6 +24,14 @@ This project implements a function-calling LLM interface where the LLM **always*
 
 ## Quick Start
 
+### Try it Now (No API Key Required!)
+
+```bash
+python demo.py
+```
+
+See the system in action with simulated responses!
+
 ### Installation
 
 ```bash
@@ -47,6 +55,8 @@ python main.py --verbose
 # Run example
 python main.py --example
 ```
+
+📖 **New to the project?** Check out [QUICKSTART.md](QUICKSTART.md) for a 3-minute guide!
 
 ## How It Works
 
@@ -91,7 +101,9 @@ with variations in how it describes the phenomenon across different samples.]
 
 ## Documentation
 
+- [QUICKSTART.md](QUICKSTART.md) - 3-minute quick start guide (start here!)
 - [USAGE.md](USAGE.md) - Comprehensive usage guide and API reference
+- [IMPLEMENTATION.md](IMPLEMENTATION.md) - Technical implementation details
 - [.env.example](.env.example) - Environment configuration template
 
 ## Project Structure
