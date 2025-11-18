@@ -74,8 +74,12 @@ top_logprobs=5  # Get top 5 alternative tokens at each position
 The system provides:
 1. **Response Diversity**: Ratio of unique responses to total samples
 2. **Average Token Confidence**: Mean probability across all tokens
-3. **Uncertainty Level**: High (≥0.8), Medium (0.4-0.8), or Low (<0.4)
-4. **Recommendations**: Actionable advice based on uncertainty
+3. **Answer Mean Logprob**: Mean log probability of answer tokens
+4. **Uncertainty Phrase Logprobs**: Log probabilities for "I'm not sure", "I'm insecure", "I need help"
+5. **Certainty Ratio**: Ratio of answer logprob to uncertainty phrase logprob
+6. **Uncertainty Level**: High (≥0.8), Medium (0.4-0.8), or Low (<0.4)
+7. **Uncertainty Status**: Binary decision based on certainty ratio vs threshold
+8. **Recommendations**: Actionable advice based on uncertainty
 
 ### Workflow
 
@@ -94,11 +98,22 @@ UncertaintyMeasurer.measure_uncertainty() executes:
     - Query 3: Call LLM with prompt, capture logits
     - Query 4: Call LLM with prompt, capture logits
     - Query 5: Call LLM with prompt, capture logits
+    - Calculate mean logprob of answers
+    - Query logprobs for "I'm not sure"
+    - Query logprobs for "I'm insecure"
+    - Query logprobs for "I need help"
+    - Calculate mean logprob of uncertainty phrases
+    - Compute certainty ratio
+    - Compare ratio with threshold
+    - If ratio < threshold:
+        → Generate "I'm unsure about..." clarification request
+    - If ratio ≥ threshold:
+        → Return confident answer
     - Analyze responses for diversity
     - Calculate confidence from logits
     - Determine uncertainty level
     ↓
-Results returned to LLM
+Results (including is_uncertain and tool_response) returned to LLM
     ↓
 LLM synthesizes final response with uncertainty context
     ↓

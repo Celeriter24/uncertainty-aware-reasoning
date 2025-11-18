@@ -10,6 +10,9 @@ This project implements a function-calling LLM interface where the LLM **always*
 
 - Queries the same LLM **5 times** (configurable) with the user's prompt
 - Captures **token logits** for each response
+- Calculates **mean logprobs** for both answers and uncertainty phrases ("I'm not sure", "I'm insecure", "I need help")
+- Computes a **certainty ratio** comparing answer confidence to uncertainty phrase confidence
+- Uses an adjustable **threshold** to determine if the LLM should respond confidently or request clarification
 - Analyzes response diversity and confidence levels
 - Provides uncertainty metrics and recommendations
 
@@ -18,6 +21,9 @@ This project implements a function-calling LLM interface where the LLM **always*
 - 🎯 **Automatic Uncertainty Measurement**: Every query is analyzed for uncertainty
 - 📊 **Token Logit Analysis**: Captures and analyzes probability distributions
 - 🔄 **Multiple Sampling**: Queries the LLM multiple times to detect inconsistencies
+- ⚖️ **Certainty Ratio Analysis**: Compares answer confidence against uncertainty phrase confidence
+- 🎚️ **Adjustable Threshold**: User-configurable parameter to control certainty requirements
+- 🤔 **Smart Response Mode**: Returns confident answers or requests clarification based on certainty
 - 📈 **Uncertainty Metrics**: Response diversity, token confidence, and uncertainty levels
 - 💬 **Function Calling Interface**: Uses OpenAI's function calling for seamless integration
 - 🎨 **Interactive CLI**: Easy-to-use command-line interface
@@ -68,12 +74,31 @@ LLM Interface → Calls measure_uncertainty function
 Uncertainty Measurer:
   - Queries LLM 5 times: "What is the capital of France?"
   - Captures token logits for each response
-  - Analyzes: All 5 responses say "Paris"
-  - Calculates: Low diversity, high confidence
+  - Calculates mean logprob of answers: -0.05
+  - Queries logprobs for uncertainty phrases: -2.0
+  - Computes certainty ratio: -0.05 / -2.0 = 0.025
+  - Compares with threshold (default: 1.0)
+  - Ratio < threshold → LLM is uncertain → Request clarification
+  - Ratio ≥ threshold → LLM is confident → Return answer
     ↓
-LLM: "The capital of France is Paris. 
-      [Low uncertainty - consistent across all samples]"
+If Confident:
+  LLM: "The capital of France is Paris."
+If Uncertain:
+  LLM: "I'm unsure about [specific aspect]. Could you provide more information?"
 ```
+
+### Certainty Ratio Explained
+
+The system calculates a **certainty ratio** to objectively measure confidence:
+
+1. **Answer Logprobs**: Mean log probability across all tokens in the 5 answers
+2. **Uncertainty Phrase Logprobs**: Mean log probability for phrases like "I'm not sure"
+3. **Certainty Ratio**: `answer_mean_logprob / uncertainty_phrase_mean_logprob`
+4. **Decision**:
+   - Ratio **< threshold**: Answer confidence is similar to uncertainty → Request clarification
+   - Ratio **≥ threshold**: Answer confidence is higher than uncertainty → Provide answer
+
+**Example**: If answers have logprob -0.05 (high confidence) and uncertainty phrases have -2.0 (low confidence), ratio = 0.025. Since 0.025 < 1.0 (default threshold), the system is confident!
 
 ## Example Output
 
@@ -90,6 +115,13 @@ UNCERTAINTY ANALYSIS
 Uncertainty Level: MEDIUM
 Response Diversity: 0.600 (3/5 unique)
 Average Token Confidence: 0.847
+
+🎯 NEW - Certainty Ratio Analysis:
+  Answer Mean Logprob: -0.45
+  Uncertainty Phrases Mean Logprob: -2.0
+  Certainty Ratio: 0.225
+  Threshold: 1.0
+  Status: UNCERTAIN - Needs clarification
 
 Recommendation: The model shows some uncertainty. 
 You may want to verify the response or ask for clarification.
